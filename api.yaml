@@ -1,103 +1,320 @@
 openapi: 3.0.3
 info:
-  title: Example Payment API
-  description: Пример API для обработки платежей между фронтом и бэкендом
+  title: Api kokoshnik
+  description: API между frontend и backend
   version: 1.0.0
-  contact:
-    name: API Team
-    email: api@company.com
-
-servers:
-  - url: https://api.example.com/v1
-    description: Production server
 
 paths:
-  /payments/create:
+  /authorization:
     post:
-      summary: Создать платеж
-      description: Принимает параметры платежа и возвращает объект с результатом
-      operationId: createPayment
+      summary: Авторизация по телефону
+      description: Отправляет код подтверждения на телефон пользователя
+      operationId: authorizePhone
       tags:
-        - Payments
+        - Registration
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - amount
-                - currency
-                - customerPhone
-                - description
+              required: [ phone ]
               properties:
-                amount:
-                  type: number
-                  format: double
-                  minimum: 0.01
-                  example: 1000.50
-                  description: Сумма платежа
-                currency:
-                  type: string
-                  enum: [RUB, USD, EUR]
-                  example: RUB
-                  description: Валюта платежа
-                customerPhone:
+                phone:
                   type: string
                   pattern: '^\+?[1-9]\d{1,14}$'
-                  example: "+79123456789"
-                  description: Телефон клиента
-                description:
-                  type: string
-                  maxLength: 255
-                  example: "Оплата заказа #12345"
-                  description: Текстовое описание платежа
+                  example: "+79091444414"
+                  description: Номер телефона пользователя
             examples:
-              fullPayment:
-                summary: Полный пример платежа
+              phoneAuth:
+                summary: Авторизация по номеру телефона
                 value:
-                  amount: 1500.00
-                  currency: RUB
-                  customerPhone: "+79123456789"
-                  description: "Пополнение игрового счета"
+                  phone: "+79091444414"
       responses:
         '200':
-          description: Платеж успешно создан
+          description: Код подтверждения отправлен успешно
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
-                  paymentId:
+                  userStatus:
                     type: string
-                    example: "pay_abc123def456"
-                  status:
+                    enum: [ new, existing ]
+                    example: "new"
+                    description: Статус пользователя (новый или существующий)
+                  sessionId:
                     type: string
-                    enum: [pending, completed, failed]
-                    example: "pending"
-                  amount:
-                    type: number
-                    example: 1500.00
-                  expiresAt:
+                    example: "3242ffrreoih23r-f43f3-34f"
+                    description: ID сессии для верификации кода
+                  sender:
                     type: string
-                    format: date-time
-                    example: "2026-01-13T12:00:00Z"
-                  paymentUrl:
-                    type: string
-                    example: "https://pay.example.com/pay_abc123def456"
+                    enum: [ sms, telegram ]
+                    example: "sms"
+                    description: Канал отправки кода подтверждения
+                  codeTtlSeconds:
+                    type: integer
+                    minimum: 1
+                    example: 60
+                    description: Время жизни кода в секундах
                 examples:
-                  successExample:
-                    summary: Успешное создание
+                  newUserSms:
+                    summary: Новый пользователь, SMS
                     value:
-                      success: true
-                      paymentId: "pay_abc123def456"
-                      status: "pending"
-                      amount: 1500.00
-                      expiresAt: "2026-01-13T12:00:00Z"
-                      paymentUrl: "https://pay.example.com/pay_abc123def456"
+                      userStatus: "new"
+                      sessionId: "3242ffrreoih23r-f43f3-34f"
+                      sender: "sms"
+                      codeTtlSeconds: 60
+                  existingUserTelegram:
+                    summary: Существующий пользователь, Telegram
+                    value:
+                      userStatus: "existing"
+                      sessionId: "a1b2c3d4e5f6g7h8-i9j0k1l2"
+                      sender: "telegram"
+                      codeTtlSeconds: 60
+        '400':
+          description: Неверный формат номера телефона
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid phone number format"
+        '429':
+          description: Слишком много попыток авторизации
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Too many requests. Try again later"
+        '500':
+          description: Ошибка отправки кода
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to send verification code"
+  /resend-code:
+    post:
+      summary: Повторная отправка кода подтверждения
+      description: Повторно отправляет код подтверждения по существующей сессии
+      operationId: resendVerificationCode
+      tags:
+        - Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessionId]
+              properties:
+                sessionId:
+                  type: string
+                  example: "3242ffrreoih23r-f43f3-34f"
+                  description: ID сессии из ответа /authorization
+            examples:
+              resendExample:
+                summary: Повторная отправка по sessionId
+                value:
+                  sessionId: "3242ffrreoih23r-f43f3-34f"
+      responses:
+        '200':
+          description: Код повторно отправлен успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sender:
+                    type: string
+                    enum: [sms, telegram]
+                    example: "sms"
+                    description: Канал отправки кода подтверждения
+                  codeTtlSeconds:
+                    type: integer
+                    minimum: 1
+                    example: 60
+                    description: Время жизни нового кода в секундах
+                examples:
+                  resendSms:
+                    summary: Повторная отправка SMS
+                    value:
+                      sender: "sms"
+                      codeTtlSeconds: 60
+                  resendTelegram:
+                    summary: Повторная отправка Telegram
+                    value:
+                      sender: "telegram"
+                      codeTtlSeconds: 60
+        '400':
+          description: Неверный sessionId
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid session ID"
+        '404':
+          description: Сессия не найдена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Session not found"
+        '429':
+          description: Слишком много повторных запросов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Too many resend attempts"
+  /verify-code:
+    post:
+      summary: Верификация кода подтверждения
+      description: Подтверждает введенный код и переводит пользователя в статус ожидания пароля
+      operationId: verifyCode
+      tags:
+        - Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessionId, code]
+              properties:
+                sessionId:
+                  type: string
+                  example: "3242ffrreoih23r-f43f3-34f"
+                  description: ID сессии из ответа /authorization
+                code:
+                  type: integer
+                  minimum: 1000
+                  maximum: 9999
+                  example: 1234
+                  description: 4-значный код подтверждения
+            examples:
+              verifyCodeExample:
+                summary: Верификация кода по сессии
+                value:
+                  sessionId: "3242ffrreoih23r-f43f3-34f"
+                  code: 1234
+      responses:
+        '200':
+          description: Код верифицирован успешно, статус пользователя изменен на password_pending
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userStatus:
+                    type: string
+                    enum: [password_pending]
+                    example: "password_pending"
+                    description: Новый статус пользователя
+                examples:
+                  passwordPending:
+                    summary: Статус ожидания установки пароля
+                    value:
+                      userStatus: "password_pending"
+        '400':
+          description: Неверный формат кода или sessionId
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid code or session ID"
+        '401':
+          description: Неверный код подтверждения
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid verification code"
+        '404':
+          description: Сессия не найдена или истекла
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Session not found or expired"
+  /set-password:
+    post:
+      summary: Установка пароля (PIN-кода)
+      description: Устанавливает пароль для пользователя после верификации по коду
+      operationId: setPassword
+      tags:
+        - Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessionId, password]
+              properties:
+                sessionId:
+                  type: string
+                  example: "3242ffrreoih23r-f43f3-34f"
+                  description: ID сессии из ответа /authorization
+                password:
+                  type: string
+                  minLength: 6
+                  maxLength: 32
+                  pattern: '^(?=.*[0-9])(?=.*[a-zA-Z]).{6,32}$'
+                  example: "123123fefef"
+                  description: Пароль пользователя (минимум 6 символов, цифры + буквы)
+                  writeOnly: true
+            examples:
+              setPasswordExample:
+                summary: Установка пароля по сессии
+                value:
+                  sessionId: "3242ffrreoih23r-f43f3-34f"
+                  password: "123123fefef"
+      responses:
+        '200':
+          description: Пароль успешно установлен, статус пользователя изменен на pincode_pending
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userStatus:
+                    type: string
+                    enum: [pincode_pending]
+                    example: "pincode_pending"
+                    description: Новый статус пользователя
+                examples:
+                  pincodePending:
+                    summary: Статус ожидания подтверждения PIN
+                    value:
+                      userStatus: "pincode_pending"
         '400':
           description: Неверные параметры запроса
           content:
@@ -107,25 +324,9 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: "Invalid amount"
-        '422':
-          description: Валидация не пройдена
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  errors:
-                    type: object
-                    additionalProperties:
-                      type: array
-                      items:
-                        type: string
-                    example:
-                      amount: ["Amount must be greater than 0"]
-                      customerPhone: ["Invalid phone format"]
-        '500':
-          description: Внутренняя ошибка сервера
+                    example: "Invalid password format"
+        '404':
+          description: Сессия не найдена или уже завершена
           content:
             application/json:
               schema:
@@ -133,40 +334,339 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: "Internal server error"
+                    example: "Session not found or expired"
+        '409':
+          description: Пароль уже установлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Password already set"
+  /set-pin-code:
+    post:
+      summary: Установка PIN-кода
+      description: Завершает регистрацию, устанавливая PIN-код и выдавая токены авторизации
+      operationId: setPinCode
+      tags:
+        - Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessionId, pinCode]
+              properties:
+                sessionId:
+                  type: string
+                  example: "3242ffrreoih23r-f43f3-34f"
+                  description: ID сессии из ответа /authorization
+                pinCode:
+                  type: string
+                  pattern: '^\d{4}$'
+                  example: "1234"
+                  description: 4-значный PIN-код
+                  writeOnly: true
+            examples:
+              setPinExample:
+                summary: Установка PIN-кода по сессии
+                value:
+                  sessionId: "3242ffrreoih23r-f43f3-34f"
+                  pinCode: "1234"
+      responses:
+        '200':
+          description: PIN-код установлен, пользователь активен, выданы токены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userStatus:
+                    type: string
+                    enum: [active]
+                    example: "active"
+                    description: Статус активного пользователя
+                  token:
+                    type: string
+                    example: "23313jrbi4rhi4uhfiu4fh34iuh"
+                    description: JWT access token для авторизованных запросов
+                  refreshToken:
+                    type: string
+                    example: "12323j4b23j4ui1b3bu1"
+                    description: Refresh token для обновления access token
+                examples:
+                  activeUser:
+                    summary: Пользователь активирован с токенами
+                    value:
+                      userStatus: "active"
+                      token: "23313jrbi4rhi4uhfiu4fh34iuh"
+                      refreshToken: "12323j4b23j4ui1b3bu1"
+        '400':
+          description: Неверный формат PIN-кода
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "PIN must be 4 digits"
+        '401':
+          description: Сессия недействительна для установки PIN
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid session for PIN setup"
+        '409':
+          description: PIN уже установлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "PIN already set"
 
-components:
-  schemas:
-    PaymentRequest:
-      type: object
-      required: [amount, currency, customerPhone, description]
-      properties:
-        amount:
-          type: number
-          format: double
-        currency:
-          type: string
-          enum: [RUB, USD, EUR]
-        customerPhone:
-          type: string
-          pattern: '^\+?[1-9]\d{1,14}$'
-        description:
-          type: string
-          maxLength: 255
-    PaymentResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        paymentId:
-          type: string
-        status:
-          type: string
-          enum: [pending, completed, failed]
-        amount:
-          type: number
-        expiresAt:
-          type: string
-          format: date-time
-        paymentUrl:
-          type: string
+  /check-password:
+    post:
+      summary: Проверка пароля
+      description: Проверяет правильность введенного пароля по сессии
+      operationId: checkPassword
+      tags:
+        - Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessionId, password]
+              properties:
+                sessionId:
+                  type: string
+                  example: "3242ffrreoih23r-f43f3-34f"
+                  description: ID сессии из ответа /authorization
+                password:
+                  type: string
+                  minLength: 6
+                  maxLength: 32
+                  example: "123123fefef"
+                  description: Пароль для проверки
+                  writeOnly: true
+            examples:
+              checkPasswordExample:
+                summary: Проверка пароля по сессии
+                value:
+                  sessionId: "3242ffrreoih23r-f43f3-34f"
+                  password: "123123fefef"
+      responses:
+        '200':
+          description: Пароль проверен успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                description: Пустой объект при успешной проверке
+              examples:
+                successEmpty:
+                  summary: Успешная проверка (пустой ответ)
+                  value: {}
+        '400':
+          description: Неверные параметры запроса
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid password format"
+        '401':
+          description: Неверный пароль
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid password"
+        '404':
+          description: Сессия не найдена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Session not found"
+  /password-recovery:
+    post:
+      summary: Запуск восстановления пароля
+      description: Инициирует процесс восстановления забытого пароля
+      operationId: startPasswordRecovery
+      tags:
+        - Authorization
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              description: Пустое тело запроса
+            examples:
+              emptyBody:
+                summary: Пустое тело запроса
+                value: {}
+      responses:
+        '200':
+          description: Процесс восстановления пароля запущен успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                description: Пустой объект при успешном запуске восстановления
+              examples:
+                recoveryStarted:
+                  summary: Восстановление запущено (пустой ответ)
+                  value: {}
+        '429':
+          description: Слишком много попыток восстановления
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Too many recovery attempts"
+
+  /login:
+    post:
+      summary: Авторизация по токену и PIN-коду
+      description: Выполняет логин пользователя с обновлением JWT токенов
+      operationId: login
+      tags:
+        - Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, pinCode]
+              properties:
+                token:
+                  type: string
+                  example: "23313jrbi4rhi4uhfiu4fh34iuh"
+                  description: Access token из /set-pin-code
+                pinCode:
+                  type: string
+                  pattern: '^\d{4}$'
+                  example: "1234"
+                  description: 4-значный PIN-код пользователя
+                  writeOnly: true
+            examples:
+              loginExample:
+                summary: Логин по токену и PIN
+                value:
+                  token: "23313jrbi4rhi4uhfiu4fh34iuh"
+                  pinCode: "1234"
+      responses:
+        '200':
+          description: Успешный логин, выданы новые токены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "i3buh3bu24bu2"
+                    description: Новый JWT access token
+                  refreshToken:
+                    type: string
+                    example: "i34j3b4i3u4bitb34ubiub"
+                    description: Новый refresh token
+                examples:
+                  loginSuccess:
+                    summary: Новые токены выданы
+                    value:
+                      token: "i3buh3bu24bu2"
+                      refreshToken: "i34j3b4i3u4bitb34ubiub"
+        '400':
+          description: Неверный формат параметров
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid token or PIN format"
+        '401':
+          description: Неверный PIN-код или токен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid credentials"
+  /pin-recovery:
+    post:
+      summary: Запуск восстановления PIN-кода
+      description: Инициирует процесс восстановления забытого PIN-кода
+      operationId: startPinRecovery
+      tags:
+        - Login
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              description: Пустое тело запроса
+            examples:
+              emptyBody:
+                summary: Пустое тело запроса
+                value: { }
+      responses:
+        '200':
+          description: Процесс восстановления PIN-кода запущен успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                description: Пустой объект при успешном запуске восстановления
+              examples:
+                recoveryStarted:
+                  summary: Восстановление запущено (пустой ответ)
+                  value: { }
+        '429':
+          description: Слишком много попыток восстановления
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Too many recovery attempts"
+
+
