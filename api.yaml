@@ -578,23 +578,27 @@ paths:
 
   /login:
     post:
-      summary: Авторизация по токену и PIN-коду
+      summary: Авторизация по Bearer токену и PIN-коду
       description: Выполняет логин пользователя с обновлением JWT токенов
       operationId: login
       tags:
         - Login
+      parameters:
+        - name: Authorization
+          in: header
+          description: Bearer токен для авторизации (обязательный)
+          required: true
+          schema:
+            type: string
+            example: "Bearer 23313jrbi4rhi4uhfiu4fh34iuh"
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [token, pinCode]
+              required: [pinCode]
               properties:
-                token:
-                  type: string
-                  example: "23313jrbi4rhi4uhfiu4fh34iuh"
-                  description: Access token из /set-pin-code
                 pinCode:
                   type: string
                   pattern: '^\d{4}$'
@@ -603,9 +607,8 @@ paths:
                   writeOnly: true
             examples:
               loginExample:
-                summary: Логин по токену и PIN
+                summary: Логин по Bearer токену и PIN
                 value:
-                  token: "23313jrbi4rhi4uhfiu4fh34iuh"
                   pinCode: "1234"
       responses:
         '200':
@@ -623,12 +626,12 @@ paths:
                     type: string
                     example: "i34j3b4i3u4bitb34ubiub"
                     description: Новый refresh token
-                example:
-                  loginSuccess:
-                    summary: Новые токены выданы
-                    value:
-                      token: "i3buh3bu24bu2"
-                      refreshToken: "i34j3b4i3u4bitb34ubiub"
+              examples:
+                loginSuccess:
+                  summary: Новые токены выданы
+                  value:
+                    token: "i3buh3bu24bu2"
+                    refreshToken: "i34j3b4i3u4bitb34ubiub"
         '400':
           description: Неверный формат параметров
           content:
@@ -638,7 +641,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Неверный формат "
+                    example: "Неверный формат"
         '401':
           description: Неверный PIN-код или токен
           content:
@@ -649,6 +652,16 @@ paths:
                   error:
                     type: string
                     example: "Неверный PIN-код или токен"
+        '498':
+          description: Неверный или истекший Bearer токен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Неверный или истекший Bearer токен"
   /pin-code-recovery:
     post:
       summary: Запуск восстановления PIN-кода
@@ -709,4 +722,148 @@ paths:
                   message:
                     type: string
                     example: "Неверный или истекший Bearer токен"
+  /logout:
+    post:
+      summary: Выход из системы
+      description: Завершает сессию пользователя и убивает токен
+      operationId: logout
+      tags:
+        - Login
+      parameters:
+        - name: Authorization
+          in: header
+          description: Bearer токен для авторизации (обязательный)
+          required: true
+          schema:
+            type: string
+            example: "Bearer 23313jrbi4rhi4uhfiu4fh34iuh"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              description: Пустое тело запроса
+            examples:
+              emptyBody:
+                summary: Пустое тело запроса
+                value: { }
+      responses:
+        '200':
+          description: Выход выполнен успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                description: Пустой объект при успешном выходе
+              examples:
+                logoutSuccess:
+                  summary: Логаут выполнен (пустой ответ)
+                  value: { }
+        '400':
+          description: Неверный формат запроса
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Неверный формат запроса"
+        '401':
+          description: Неверный токен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Неверный токен"
+        '498':
+          description: Неверный или истекший Bearer токен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Неверный или истекший Bearer токен"
 
+  /refresh-token:
+    post:
+      summary: Обновление токенов
+      description: Обновляет access token с помощью refresh token
+      operationId: refreshToken
+      tags:
+        - Login
+      parameters:
+        - name: Authorization
+          in: header
+          description: Текущий access token (обязательный)
+          required: true
+          schema:
+            type: string
+            example: "Bearer 23313jrbi4rhi4uhfiu4fh34iuh"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ refreshToken ]
+              properties:
+                refreshToken:
+                  type: string
+                  example: "i34j3b4i3u4bitb34ubiub"
+                  description: Refresh token из /set-pin-code или /login
+              examples:
+                refreshExample:
+                  summary: Обновление токенов
+                  value:
+                    refreshToken: "i34j3b4i3u4bitb34ubiub"
+      responses:
+        '200':
+          description: Токены успешно обновлены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "новый_access_token_abc123"
+                    description: Новый access token
+                  refreshToken:
+                    type: string
+                    example: "новый_refresh_token_def456"
+                    description: Новый refresh token (ротация)
+              examples:
+                tokensRefreshed:
+                  summary: Новые токены выданы
+                  value:
+                    token: "новый_access_token_abc123"
+                    refreshToken: "новый_refresh_token_def456"
+        '400':
+          description: Неверный формат refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Неверный формат refresh token"
+        '401':
+          description: Неверный access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Неверный access token"
