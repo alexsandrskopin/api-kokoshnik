@@ -23,13 +23,13 @@ paths:
                 phone:
                   type: string
                   pattern: '^\+?[1-9]\d{1,14}$'
-                  example: "+79091444414"
+                  example: "79091444414"
                   description: Номер телефона пользователя
             examples:
               phoneAuth:
                 summary: Авторизация по номеру телефона
                 value:
-                  phone: "+79091444414"
+                  phone: "79091444414"
       responses:
         '200':
           description: Код подтверждения отправлен успешно
@@ -205,9 +205,7 @@ paths:
                   example: "3242ffrreoih23r-f43f3-34f"
                   description: ID сессии из ответа /authorization
                 code:
-                  type: integer
-                  minimum: 1000
-                  maximum: 9999
+                  type: string
                   example: 1234
                   description: 4-значный код подтверждения
             examples:
@@ -215,7 +213,7 @@ paths:
                 summary: Верификация кода по сессии
                 value:
                   sessionId: "3242ffrreoih23r-f43f3-34f"
-                  code: 1234
+                  code: "1234"
       responses:
         '200':
           description: Код верифицирован успешно, статус пользователя изменен на password_pending
