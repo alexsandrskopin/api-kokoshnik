@@ -867,7 +867,7 @@ paths:
                     type: string
                     example: "Неверный access token"
 
-  /get-history-operations:
+  /get-operations:
     get:
       summary: Получить историю операций
       description: Возвращает список операций пользователя с пагинацией. Подразумевается, что если передан параметр page( hash(номер след страницы + filter) ) то typeOperations не учитывается.
@@ -936,8 +936,13 @@ paths:
                         amount:
                           type: number
                           format: double
-                          example: -10000.00
-                          description: Сумма операции (отрицательная = расход)
+                          example: 10000.00
+                          description: Сумма операции
+                        type:
+                          type: string
+                          enum: [credit, debit]
+                          example: "credit"
+                          description: Тип Операции (credit - отрицательная)
                         time:
                           type: string
                           format: date-time
@@ -962,11 +967,13 @@ paths:
                     description: "Co-cosh"
                     amount: -10000.00
                     time: "2026-01-13T10:30:00Z"
+                    type: "credit"
                     id: "op_abc123def456"
                   - bankLogo: "https://example.com/banks/tinkoff.png"
                     title: "Магазин Игр"
                     description: "Покупка игры"
                     amount: 2500.00
+                    type: "debit"
                     time: "2026-01-13T09:15:00Z"
                     id: "op_def456ghi789"
         '400':
