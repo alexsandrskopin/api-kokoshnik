@@ -636,9 +636,9 @@ paths:
               schema:
                 type: object
                 properties:
-                  error:
+                  message:
                     type: string
-                    example: "Invalid token or PIN format"
+                    example: "Неверный формат "
         '401':
           description: Неверный PIN-код или токен
           content:
@@ -648,14 +648,22 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: "Invalid credentials"
-  /pin-recovery:
+                    example: "Неверный PIN-код или токен"
+  /pin-code-recovery:
     post:
       summary: Запуск восстановления PIN-кода
       description: Инициирует процесс восстановления забытого PIN-кода
       operationId: startPinRecovery
       tags:
         - Login
+      parameters:
+        - name: bearToken
+          in: header
+          description: Bearer токен для авторизации
+          required: true
+          schema:
+            type: string
+            example: "Bearer 23313jrbi4rhi4uhfiu4fh34iuh"
       requestBody:
         required: false
         content:
@@ -688,8 +696,17 @@ paths:
               schema:
                 type: object
                 properties:
-                  error:
+                  message:
                     type: string
-                    example: "Too many recovery attempts"
-
+                    example: "Слишком много попыток восстановления"
+        '498':
+          description: Неверный или истекший Bearer токен при этом приложение будет запускать процесс перевыпуска токена и повторять попытку
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Неверный или истекший Bearer токен"
 
