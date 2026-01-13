@@ -1,0 +1,172 @@
+openapi: 3.0.3
+info:
+  title: Example Payment API
+  description: Пример API для обработки платежей между фронтом и бэкендом
+  version: 1.0.0
+  contact:
+    name: API Team
+    email: api@company.com
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+
+paths:
+  /payments/create:
+    post:
+      summary: Создать платеж
+      description: Принимает параметры платежа и возвращает объект с результатом
+      operationId: createPayment
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - currency
+                - customerPhone
+                - description
+              properties:
+                amount:
+                  type: number
+                  format: double
+                  minimum: 0.01
+                  example: 1000.50
+                  description: Сумма платежа
+                currency:
+                  type: string
+                  enum: [RUB, USD, EUR]
+                  example: RUB
+                  description: Валюта платежа
+                customerPhone:
+                  type: string
+                  pattern: '^\+?[1-9]\d{1,14}$'
+                  example: "+79123456789"
+                  description: Телефон клиента
+                description:
+                  type: string
+                  maxLength: 255
+                  example: "Оплата заказа #12345"
+                  description: Текстовое описание платежа
+            examples:
+              fullPayment:
+                summary: Полный пример платежа
+                value:
+                  amount: 1500.00
+                  currency: RUB
+                  customerPhone: "+79123456789"
+                  description: "Пополнение игрового счета"
+      responses:
+        '200':
+          description: Платеж успешно создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  paymentId:
+                    type: string
+                    example: "pay_abc123def456"
+                  status:
+                    type: string
+                    enum: [pending, completed, failed]
+                    example: "pending"
+                  amount:
+                    type: number
+                    example: 1500.00
+                  expiresAt:
+                    type: string
+                    format: date-time
+                    example: "2026-01-13T12:00:00Z"
+                  paymentUrl:
+                    type: string
+                    example: "https://pay.example.com/pay_abc123def456"
+                examples:
+                  successExample:
+                    summary: Успешное создание
+                    value:
+                      success: true
+                      paymentId: "pay_abc123def456"
+                      status: "pending"
+                      amount: 1500.00
+                      expiresAt: "2026-01-13T12:00:00Z"
+                      paymentUrl: "https://pay.example.com/pay_abc123def456"
+        '400':
+          description: Неверные параметры запроса
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid amount"
+        '422':
+          description: Валидация не пройдена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: string
+                    example:
+                      amount: ["Amount must be greater than 0"]
+                      customerPhone: ["Invalid phone format"]
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error"
+
+components:
+  schemas:
+    PaymentRequest:
+      type: object
+      required: [amount, currency, customerPhone, description]
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          enum: [RUB, USD, EUR]
+        customerPhone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+        description:
+          type: string
+          maxLength: 255
+    PaymentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        paymentId:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed, failed]
+        amount:
+          type: number
+        expiresAt:
+          type: string
+          format: date-time
+        paymentUrl:
+          type: string
