@@ -958,6 +958,7 @@ paths:
                         - description
                         - amount
                         - time
+                        - type
                         - bankLogo
               example:
                 nextPageUrl: "/get-history-operations?page=bibi4ibi1b3"
