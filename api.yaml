@@ -511,22 +511,27 @@ paths:
   /password-recovery:
     post:
       summary: Запуск восстановления пароля
-      description: Инициирует процесс восстановления забытого пароля
+      description: Инициирует процесс восстановления забытого пароля по сессии
       operationId: startPasswordRecovery
       tags:
         - Authorization
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
               type: object
-              additionalProperties: false
-              description: Пустое тело запроса
+              required: [sessionId]
+              properties:
+                sessionId:
+                  type: string
+                  example: "3242ffrreoih23r-f43f3-34f"
+                  description: ID сессии для восстановления пароля
             examples:
-              emptyBody:
-                summary: Пустое тело запроса
-                value: {}
+              recoveryBySession:
+                summary: Восстановление пароля по sessionId
+                value:
+                  sessionId: "3242ffrreoih23r-f43f3-34f"
       responses:
         '200':
           description: Процесс восстановления пароля запущен успешно
@@ -540,6 +545,26 @@ paths:
                 recoveryStarted:
                   summary: Восстановление запущено (пустой ответ)
                   value: {}
+        '400':
+          description: Неверный sessionId
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid session ID"
+        '404':
+          description: Сессия не найдена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Session not found"
         '429':
           description: Слишком много попыток восстановления
           content:
