@@ -57,7 +57,7 @@ paths:
                     minimum: 1
                     example: 60
                     description: Время жизни кода в секундах
-                examples:
+                example:
                   newUserSms:
                     summary: Новый пользователь, SMS
                     value:
@@ -144,7 +144,7 @@ paths:
                     minimum: 1
                     example: 60
                     description: Время жизни нового кода в секундах
-                examples:
+                example:
                   resendSms:
                     summary: Повторная отправка SMS
                     value:
@@ -227,7 +227,7 @@ paths:
                     enum: [password_pending]
                     example: "password_pending"
                     description: Новый статус пользователя
-                examples:
+                example:
                   passwordPending:
                     summary: Статус ожидания установки пароля
                     value:
@@ -308,7 +308,7 @@ paths:
                     enum: [pincode_pending]
                     example: "pincode_pending"
                     description: Новый статус пользователя
-                examples:
+                example:
                   pincodePending:
                     summary: Статус ожидания подтверждения PIN
                     value:
@@ -395,7 +395,7 @@ paths:
                     type: string
                     example: "12323j4b23j4ui1b3bu1"
                     description: Refresh token для обновления access token
-                examples:
+                example:
                   activeUser:
                     summary: Пользователь активирован с токенами
                     value:
@@ -623,7 +623,7 @@ paths:
                     type: string
                     example: "i34j3b4i3u4bitb34ubiub"
                     description: Новый refresh token
-                examples:
+                example:
                   loginSuccess:
                     summary: Новые токены выданы
                     value:
