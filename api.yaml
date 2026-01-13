@@ -264,7 +264,7 @@ paths:
                     example: "Session not found or expired"
   /set-password:
     post:
-      summary: Установка пароля (PIN-кода)
+      summary: Установка пароля
       description: Устанавливает пароль для пользователя после верификации по коду
       operationId: setPassword
       tags:
