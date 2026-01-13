@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Api kokoshnik
-  description: API между frontend и backend
+  description: Подраземевается что все поинты начинаются с общей точки /api/v1/
   version: 1.0.0
 
 paths:
@@ -792,7 +792,6 @@ paths:
                   message:
                     type: string
                     example: "Неверный или истекший Bearer токен"
-
   /refresh-token:
     post:
       summary: Обновление токенов
@@ -820,7 +819,7 @@ paths:
                   type: string
                   example: "i34j3b4i3u4bitb34ubiub"
                   description: Refresh token из /set-pin-code или /login
-              examples:
+              example:
                 refreshExample:
                   summary: Обновление токенов
                   value:
@@ -867,3 +866,136 @@ paths:
                   error:
                     type: string
                     example: "Неверный access token"
+
+  /get-history-operations:
+    get:
+      summary: Получить историю операций
+      description: Возвращает список операций пользователя с пагинацией. Подразумевается, что если передан параметр page( hash(номер след страницы + filter) ) то typeOperations не учитывается.
+      operationId: getHistoryOperations
+      tags:
+        - Operations
+      parameters:
+        - name: Authorization
+          in: header
+          description: Bearer токен для авторизации (обязательный)
+          required: true
+          schema:
+            type: string
+            example: "Bearer 23313jrbi4rhi4uhfiu4fh34iuh"
+        - name: page
+          in: query
+          description: Cursor для пагинации (опционально) Если НЕ передан то всегда 1 страница
+          required: false
+          schema:
+            type: string
+            example: "efriiud4f4bui"
+        - name: typeOperations
+          in: query
+          description: Тип операций для фильтрации (опционально) Если передан параметр page то typeOperations опускается
+          required: false
+          schema:
+            type: string
+            enum: [topup, withdrawal, payment, all]
+            example: "all"
+            description: |
+              topup - Пополнение
+              withdrawal - Списание  
+              payment - Оплата
+              all - Все операции
+      responses:
+        '200':
+          description: История операций получена успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nextPageUrl:
+                    type: string
+                    nullable: true
+                    example: "/get-history-operations?page=efriiud4f4bui"
+                    description: Ссылка на следующую страницу (null если последняя)
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        bankLogo:
+                          type: string
+                          format: uri
+                          example: "https://example.com/banks/sberbank.png"
+                          description: Ссылка на логотип банка
+                        title:
+                          type: string
+                          example: "Сергей Е."
+                          description: Название получателя/отправителя
+                        description:
+                          type: string
+                          example: "Co-cosh"
+                          description: Описание операции
+                        amount:
+                          type: number
+                          format: double
+                          example: -10000.00
+                          description: Сумма операции (отрицательная = расход)
+                        time:
+                          type: string
+                          format: date-time
+                          example: "2026-01-13T10:30:00Z"
+                          description: Время операции
+                        id:
+                          type: string
+                          example: "op_abc123def456"
+                          description: Уникальный ID операции
+                      required:
+                        - id
+                        - title
+                        - description
+                        - amount
+                        - time
+                        - bankLogo
+              example:
+                nextPageUrl: "/get-history-operations?page=bibi4ibi1b3"
+                items:
+                  - bankLogo: "https://example.com/banks/sberbank.png"
+                    title: "Сергей Е."
+                    description: "Co-cosh"
+                    amount: -10000.00
+                    time: "2026-01-13T10:30:00Z"
+                    id: "op_abc123def456"
+                  - bankLogo: "https://example.com/banks/tinkoff.png"
+                    title: "Магазин Игр"
+                    description: "Покупка игры"
+                    amount: 2500.00
+                    time: "2026-01-13T09:15:00Z"
+                    id: "op_def456ghi789"
+        '400':
+          description: Неверные параметры запроса
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Неверные параметры фильтрации или пагинации"
+        '401':
+          description: Неверный токен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Неверный токен"
+        '498':
+          description: Истекший Bearer токен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Неверный или истекший Bearer токен"
